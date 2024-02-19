@@ -1,0 +1,249 @@
+import pygame
+from pygame import mixer
+from pygame.locals import *
+import random
+pygame.font.init()
+
+
+screen_width = 1700
+screen_height = 1000
+
+screen = pygame.display.set_mode((screen_width, screen_height))
+pygame.display.set_caption('Hulk Smash')
+
+
+font = pygame.font.Font('ARCADECLASSIC.ttf', 50)
+
+rows = 4
+columns = 14
+clock = pygame.time.Clock()
+fps = 60
+score = 0
+play = False
+gameover = 0
+fontcolour = (255,255,255)
+endfontcolour = (255, 255,255)
+
+
+
+def text_draw(text, font, fontcolour, x, y ):
+        image = font.render(text, True, fontcolour)
+        screen.blit(image, (x,y))
+        
+
+        
+
+background = pygame.image.load("img/background.jpg")
+
+def draw_background():
+	screen.blit(background, (0, 0))
+    
+
+class Hulk(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load("img/Hulk.png")
+        IMAGE_size = (275, 275)
+        self.image = pygame.transform.scale(self.image, IMAGE_size)
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+     
+       
+
+
+    def update(self):
+        speed = 6
+        self.direction = 4
+        key = pygame.key.get_pressed()
+        if key[pygame.K_LEFT] and self.rect.left > 0:
+            self.rect.x -= speed 
+
+        key = pygame.key.get_pressed()
+        if key[pygame.K_RIGHT]and self.rect.right < screen_width:
+            self.rect.x += speed
+            self.direction = 1
+
+
+
+class Rock(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load("img/rock.png")
+        img_size = (70, 70)
+        self.image = pygame.transform.scale(self.image, img_size)
+        self.rect = self.image.get_rect()
+        self.rect.center = [x + 30, y]
+        self.y = y
+        self.x = x
+        self.gameover = 0
+        self.speed_x = -2
+        self.speed_y = 2
+        self.maximumspeed = 5
+        
+      
+    def update(self):
+
+            collisionthreshold = 3
+
+            self.rect.x += self.speed_x
+            self.rect.y -= self.speed_y
+                            
+
+            if self.rect.left< 0 or self.rect.right > screen_width:
+                    self.speed_x *= -1
+
+            if self.rect.top < 0:
+                    self.speed_y *= -1
+                    
+            if self.rect.bottom > screen_height:
+                    self.gameover = -1
+
+            
+
+            return self.gameover
+                    
+                    
+        
+            
+            
+
+
+class Bugs(pygame.sprite.Sprite):
+    def __init__(self,x,y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load("img/bugs" + str(random.randint(1,3)) + ".png")
+        img_size = (72, 72)
+        self.image = pygame.transform.scale(self.image, img_size)
+        self.rect = self.image.get_rect()
+        self.rect.center = [x,y - 175]
+
+        def update(self):
+            pass
+
+
+
+class Squish(pygame.sprite.Sprite):
+    def __init__(self,x,y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load("img/bugs" + str(random.randint(1,3)) + ".png")
+        for num in range(1,6):
+                img = pygame.image.load("img/squish{num}.png")
+                img.pygame.transform.scale(img,(72,72))
+
+                self.images.append(img)
+        self.index = 0
+
+
+                
+        img_size = (72, 72)
+        self.image = pygame.transform.scale(self.image, img_size)
+        self.rect = self.image.get_rect()
+        self.rect.center = [x,y - 175]
+
+
+
+        
+
+
+bugs_group = pygame.sprite.Group()      
+Hulk_group = pygame.sprite.Group()
+rock_group = pygame.sprite.Group()
+
+
+def create_bugs():
+    for row in range(rows):
+        for item in range(columns):
+            bugs = Bugs(150 + item * 110, 250 + row * 150)
+            bugs_group.add(bugs)
+
+create_bugs()
+       
+    
+
+
+Hulk = Hulk(int(screen_width / 2), screen_height - 100)
+Hulk_group.add(Hulk)
+
+Rock = Rock(int(screen_width / 2), screen_height - 300)
+rock_group.add(Rock)
+
+run = True
+while run:
+
+    clock.tick(fps)
+
+    draw_background()
+    Hulk_group.draw(screen)
+    bugs_group.draw(screen)
+    rock_group.draw(screen)
+
+
+
+
+
+    if play:
+        Hulk.update()
+        Hulk_group.update()
+        bugs_group.update()
+        rock_group.update()
+        
+        gameover = Rock.update()
+        
+        if gameover != 0:
+                play = False
+
+
+    if play == False :
+        if gameover == 0:
+                text_draw(' CLICK  ANYWHERE  TO  START  GAME', font, fontcolour, 100, screen_height // 2 + 100)
+                text_draw(' USE  ARROW  KEYS  TO  MOVE  HULK', font, fontcolour, 950, screen_height // 2 + 100 )
+        elif gameover == 1:
+                text_draw(' BUGS  SMASHED', font, fontcolour, 750, screen_height // 2 + 100 )
+        elif gameover == -1:
+                text_draw('GAME  OVER', font, fontcolour, 750, screen_height // 2  + 200)
+                
+                
+        
+            
+
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            pygame.quit()
+        if event.type == pygame.MOUSEBUTTONDOWN and play == False:
+            play = True
+                
+    
+
+
+
+
+    hits = pygame.sprite.spritecollide(Rock, Hulk_group, False)
+    if hits:
+        hit_rect = hits[0].rect
+        if hit_rect.left > Rock.rect.left or Rock.rect.right < hit_rect.right:
+            Rock.speed_y *= -1
+        else:
+            Rock.speed_x *= -1
+
+
+    hits = pygame.sprite.spritecollide(Rock, bugs_group, False)
+    if hits:
+        hit_rect = hits[0].rect
+        if hit_rect.left > Rock.rect.left or Rock.rect.right < hit_rect.right:
+            Rock.speed_y *= -1
+        else:
+            Rock.speed_x *= -1
+
+     
+
+
+        if pygame.sprite.spritecollide(Rock, bugs_group, True):
+            score += len(hits)
+            print(score)
+
+
+ 
+
+    pygame.display.update() 
+
+pygame.quit()
